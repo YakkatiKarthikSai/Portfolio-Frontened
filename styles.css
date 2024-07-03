@@ -646,3 +646,18 @@ span{
     text-align: center;
     font-size: medium;
 }
+.tools{
+    text-align: left;
+    color: #ff0000;
+    padding: 2px;
+    font-weight: 700;
+    font-size: small;
+    
+}
+.electronics{
+    text-align: left;
+    font-size: small;
+    font-weight: 700;
+    padding: 2px;
+    color: #ff0000;
+}
