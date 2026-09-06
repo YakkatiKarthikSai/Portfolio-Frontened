@@ -1,25 +1,96 @@
-let menuIcon = document.querySelector('#menu-icon');
-let navbar = document.querySelector('.navbar');
-let sections = document.querySelectorAll('.section');
-let navLinks = document.querySelectorAll('header nav a');
+/* =========================================================
+   MOBILE MENU
+========================================================= */
 
-window.onscroll = () => {
-    sections.forEach(sec => {
-        let top = window.scrolly;
-        let offset = sec.offsetTop - 150;
-        let height = sec.offsetHeight;
-        let id = sec.getAttribute('id');
+const menuIcon = document.querySelector("#menu-icon");
+const navbar = document.querySelector(".navbar");
 
-        if (top >= offset && top < offset + height) {
-            navLinks.forEach(links => {
-                links.classlist.remove('active');
-                document.querySelector('header nav a [href*=' + id + ']').classlist.add('active')
-            })
+menuIcon.addEventListener("click", () => {
+    menuIcon.classList.toggle("bx-x");
+    navbar.classList.toggle("active");
+});
+
+
+/* =========================================================
+   CLOSE MOBILE MENU WHEN LINK IS CLICKED
+========================================================= */
+
+const navLinks = document.querySelectorAll(".navbar a");
+
+navLinks.forEach(link => {
+    link.addEventListener("click", () => {
+        menuIcon.classList.remove("bx-x");
+        navbar.classList.remove("active");
+    });
+});
+
+
+/* =========================================================
+   ACTIVE NAVIGATION LINK ON SCROLL
+========================================================= */
+
+const sections = document.querySelectorAll("section");
+
+window.addEventListener("scroll", () => {
+
+    let currentSection = "";
+
+    sections.forEach(section => {
+
+        const sectionTop = section.offsetTop - 150;
+        const sectionHeight = section.offsetHeight;
+
+        if (
+            window.scrollY >= sectionTop &&
+            window.scrollY < sectionTop + sectionHeight
+        ) {
+            currentSection = section.getAttribute("id");
         }
-    })
-}
 
-menuIcon.onclick = () => {
-    menuIcon.classList.toggle('bx-x');
-    navbar.classList.toggle('active');
-}
+    });
+
+
+    navLinks.forEach(link => {
+
+        link.classList.remove("active");
+
+        const href = link.getAttribute("href");
+
+        if (href === `#${currentSection}`) {
+            link.classList.add("active");
+        }
+
+    });
+
+});
+
+
+/* =========================================================
+   HEADER BACKGROUND ON SCROLL
+========================================================= */
+
+const header = document.querySelector(".header");
+
+window.addEventListener("scroll", () => {
+
+    if (window.scrollY > 50) {
+        header.classList.add("scrolled");
+    } else {
+        header.classList.remove("scrolled");
+    }
+
+});
+
+
+/* =========================================================
+   RESET MENU WHEN WINDOW IS RESIZED
+========================================================= */
+
+window.addEventListener("resize", () => {
+
+    if (window.innerWidth > 850) {
+        navbar.classList.remove("active");
+        menuIcon.classList.remove("bx-x");
+    }
+
+});
