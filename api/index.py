@@ -10,9 +10,20 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr, Field
 
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-load_dotenv(os.path.join(BASE_DIR, ".env"))
+# =========================================================
+# ENVIRONMENT VARIABLES
+# =========================================================
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+load_dotenv(
+    os.path.join(BASE_DIR, ".env")
+)
+
+
+# =========================================================
+# FASTAPI APPLICATION
+# =========================================================
 
 app = FastAPI(
     title="Karthik Sai Yakkati Portfolio API",
@@ -20,11 +31,16 @@ app = FastAPI(
 )
 
 
+# =========================================================
+# CORS
+# =========================================================
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://127.0.0.1:5500",
         "http://localhost:5500",
+        "https://ykarthiksai.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -32,45 +48,123 @@ app.add_middleware(
 )
 
 
-class ContactMessage(BaseModel):
-    name: str = Field(..., min_length=2, max_length=100)
-    email: EmailStr
-    phone: str = Field(default="", max_length=30)
-    subject: str = Field(default="", max_length=200)
-    message: str = Field(..., min_length=10, max_length=3000)
+# =========================================================
+# CONTACT FORM MODEL
+# =========================================================
 
+class ContactMessage(BaseModel):
+
+    name: str = Field(
+        ...,
+        min_length=2,
+        max_length=100
+    )
+
+    email: EmailStr
+
+    phone: str = Field(
+        default="",
+        max_length=30
+    )
+
+    subject: str = Field(
+        default="",
+        max_length=200
+    )
+
+    message: str = Field(
+        ...,
+        min_length=10,
+        max_length=3000
+    )
+
+
+# =========================================================
+# HEALTH CHECK
+# =========================================================
 
 @app.get("/api/health")
 async def health():
+
     return {
         "status": "healthy",
         "service": "portfolio-api"
     }
 
 
+# =========================================================
+# CONTACT FORM
+# =========================================================
+
 @app.post("/api/contact")
 async def contact(data: ContactMessage):
+
+    # -----------------------------------------------------
+    # Read environment variables
+    # -----------------------------------------------------
 
     api_key = os.getenv("RESEND_API_KEY")
     receiver_email = os.getenv("CONTACT_EMAIL")
 
+
+    # -----------------------------------------------------
+    # Check configuration
+    # -----------------------------------------------------
+
     if not api_key or not receiver_email:
+
         raise HTTPException(
             status_code=500,
             detail="Email service is not configured."
         )
 
-    name = html.escape(data.name)
-    email = html.escape(str(data.email))
-    phone = html.escape(data.phone) if data.phone else "Not provided"
-    subject = html.escape(data.subject) if data.subject else "No subject"
-    message = html.escape(data.message).replace("\n", "<br>")
+
+    # -----------------------------------------------------
+    # Sanitize user input
+    # -----------------------------------------------------
+
+    name = html.escape(
+        data.name
+    )
+
+    email = html.escape(
+        str(data.email)
+    )
+
+    phone = (
+        html.escape(data.phone)
+        if data.phone
+        else "Not provided"
+    )
+
+    subject = (
+        html.escape(data.subject)
+        if data.subject
+        else "No subject"
+    )
+
+    message = (
+        html.escape(data.message)
+        .replace("\n", "<br>")
+    )
+
+
+    # -----------------------------------------------------
+    # Resend email payload
+    # -----------------------------------------------------
 
     email_payload = {
+
         "from": "Portfolio Contact <onboarding@resend.dev>",
-        "to": [receiver_email],
+
+        "to": [
+            receiver_email
+        ],
+
         "subject": f"Portfolio Contact — {subject}",
+
         "reply_to": str(data.email),
+
         "html": f"""
         <div style="
             font-family: Arial, sans-serif;
@@ -80,10 +174,13 @@ async def contact(data: ContactMessage):
             color: #222;
         ">
 
-            <h2>New Portfolio Contact</h2>
+            <h2>
+                New Portfolio Contact
+            </h2>
 
             <p>
-                You received a new message through your portfolio website.
+                You received a new message through
+                your portfolio website.
             </p>
 
             <hr>
@@ -115,37 +212,78 @@ async def contact(data: ContactMessage):
 
             <hr>
 
-            <p style="color:#777;font-size:13px;">
-                Sent from Karthik Sai Yakkati's portfolio website.
+            <p style="
+                color: #777;
+                font-size: 13px;
+            ">
+                Sent from Karthik Sai Yakkati's
+                portfolio website.
             </p>
 
         </div>
         """
     }
 
+
+    # -----------------------------------------------------
+    # Resend API request
+    # -----------------------------------------------------
+
     request = urllib.request.Request(
+
         "https://api.resend.com/emails",
-        data=json.dumps(email_payload).encode("utf-8"),
+
+        data=json.dumps(
+            email_payload
+        ).encode("utf-8"),
+
         headers={
             "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-            "User-Agent": "Karthik-Sai-Yakkati-Portfolio/1.0",
+
+            "Content-Type":
+                "application/json",
+
+            "User-Agent":
+                "Karthik-Sai-Yakkati-Portfolio/1.0",
         },
+
         method="POST",
     )
 
+
+    # -----------------------------------------------------
+    # Send email
+    # -----------------------------------------------------
+
     try:
 
-        with urllib.request.urlopen(request, timeout=10) as response:
+        with urllib.request.urlopen(
+            request,
+            timeout=10
+        ) as response:
+
             result = json.loads(
-                response.read().decode("utf-8")
+                response
+                .read()
+                .decode("utf-8")
             )
 
+
         return {
+
             "success": True,
-            "message": "Your message has been sent successfully.",
-            "id": result.get("id")
+
+            "message":
+                "Your message has been sent successfully.",
+
+            "id":
+                result.get("id")
         }
+
+
+    # -----------------------------------------------------
+    # Resend HTTP error
+    # -----------------------------------------------------
 
     except urllib.error.HTTPError as error:
 
@@ -154,23 +292,44 @@ async def contact(data: ContactMessage):
             errors="ignore"
         )
 
-        print("Resend API error:", error_body)
+        print(
+            "Resend API error:",
+            error_body
+        )
 
         raise HTTPException(
             status_code=502,
-            detail="Unable to deliver the message right now."
+            detail=
+                "Unable to deliver the message right now."
         )
+
+
+    # -----------------------------------------------------
+    # Network error
+    # -----------------------------------------------------
 
     except urllib.error.URLError:
 
         raise HTTPException(
             status_code=502,
-            detail="Email service is temporarily unavailable."
+            detail=
+                "Email service is temporarily unavailable."
         )
 
-    except Exception:
+
+    # -----------------------------------------------------
+    # Unexpected error
+    # -----------------------------------------------------
+
+    except Exception as error:
+
+        print(
+            "Unexpected contact error:",
+            str(error)
+        )
 
         raise HTTPException(
             status_code=500,
-            detail="Something went wrong while sending the message."
+            detail=
+                "Something went wrong while sending the message."
         )
